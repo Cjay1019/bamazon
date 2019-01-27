@@ -139,7 +139,7 @@ function howManyAdd() {
     ])
     .then(function(response) {
       connection.query("SELECT * FROM products", function(err, res) {
-        var newAmount = res[id - 1].stock_quantity + response.amount;
+        var newAmount = res[id - 1].stock_quantity + parseInt(response.amount);
         connection.query(
           "UPDATE products SET ? WHERE ?",
           [
@@ -161,7 +161,10 @@ function howManyAdd() {
 }
 
 function newInventory() {
-  connection.query("SELECT department_name FROM products", function(err, res) {
+  connection.query("SELECT DISTINCT department_name FROM products", function(
+    err,
+    res
+  ) {
     var departments = [];
     for (i = 0; i < res.length; i++) {
       departments.push(res[i].department_name);
@@ -194,7 +197,9 @@ function newInventory() {
         connection.query(
           `INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('${
             response.name
-          }', '${response.name}', ${response.price}, ${response.stock})`,
+          }', '${response.department}', ${parseFloat(
+            response.price
+          )}, ${parseInt(response.stock)})`,
           function(error) {
             if (error) throw err;
             mainMenu();
