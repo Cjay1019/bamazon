@@ -1,11 +1,7 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const colors = require("colors");
-const Rx = require("rx");
 const Table = require("terminal-table");
-
-const prompts = new Rx.Subject();
-const table = new Table({ borderStyle: 3 });
 
 var id;
 
@@ -25,6 +21,7 @@ connection.connect(function(err) {
 function printInventory() {
   connection.query("SELECT * FROM products", function(err, res) {
     if (err) throw err;
+    var table = new Table({ borderStyle: 3 });
     table.push([
       "ID".blue,
       "Product".blue,
@@ -59,24 +56,12 @@ function buy() {
     ])
     .then(function(response) {
       connection.query("SELECT * FROM products", function(err, res) {
-        id = response.choice;
+        id = response.choice - 1;
         if (res[id].stock_quantity === 0) {
           console.log("This item is out of stock!");
           wouldYou();
-        }
-      });
-    })
-    .prompt([
-      {
-        type: "input",
-        name: "number",
-        message: "Enter the amount that you would like to purchase."
-      }
-    ])
-    .then(function(response) {
-      connection.query("SELECT * FROM products", function(err, res) {
-        if (response.number > res[id].stock_quantity) {
-          tooMany();
+        } else {
+          howMany();
         }
       });
     });
@@ -88,7 +73,7 @@ function wouldYou() {
       {
         type: "list",
         name: "choice",
-        message: "What would you like to do?",
+        message: "What would you like to do now?",
         choices: ["Buy a different item", "Exit"]
       }
     ])
@@ -107,13 +92,73 @@ function tooMany() {
       {
         type: "list",
         name: "choice",
-        message: "There isn't enough of that item in stock.",
+        message: "There isn't enough of that item in stock.".red,
         choices: ["Enter a new amount", "Choose a different item", "Exit"]
       }
     ])
     .then(function(response) {
       switch (response.choice) {
         case "Enter a new amount":
+          howMany();
+          break;
+        case "Choose a different item":
+          printInventory();
+          break;
+        case "Exit":
+          connection.end();
+          return;
       }
+    });
+}
+
+function howMany() {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "number",
+        message: "Enter the amount that you would like to purchase."
+      }
+    ])
+    .then(function(response) {
+      connection.query("SELECT * FROM products", function(err, res) {
+        if (response.number > res[id].stock_quantity) {
+          tooMany();
+        } else {
+          // if (
+          //   response.number > 1 &&
+          //   res[id].product_name.lastIndexOf("s") !==
+          //     res[id].product_name.length + 1
+          // ) {
+          //   console.log("plural");
+          // } else {
+          //   console.log("single");
+          // }
+          console.log(
+            `Success! You have purchased ${response.number} ${
+              res[id].product_name
+            } for ` + colors.red("$" + res[id].price * response.number)
+          );
+          var newAmount = res[id].stock_quantity - response.number;
+
+          console.log(newAmount, id);
+
+          connection.query(
+            "UPDATE products SET ? WHERE ?",
+            [
+              {
+                stock_quantity: newAmount
+              },
+              {
+                item_id: id + 1
+              }
+            ],
+            function(error) {
+              if (error) throw err;
+              wouldYou();
+            }
+          );
+        }
+      });
     });
 }
