@@ -58,7 +58,7 @@ function buy() {
       connection.query("SELECT * FROM products", function(err, res) {
         id = response.choice - 1;
         if (res[id].stock_quantity === 0) {
-          console.log("This item is out of stock!");
+          console.log("This item is out of stock!".red);
           wouldYou();
         } else {
           howMany();
@@ -81,6 +81,7 @@ function wouldYou() {
       if (response.choice === "Buy a different item") {
         printInventory();
       } else {
+        connection.end();
         return;
       }
     });
@@ -125,29 +126,20 @@ function howMany() {
         if (response.number > res[id].stock_quantity) {
           tooMany();
         } else {
-          // if (
-          //   response.number > 1 &&
-          //   res[id].product_name.lastIndexOf("s") !==
-          //     res[id].product_name.length + 1
-          // ) {
-          //   console.log("plural");
-          // } else {
-          //   console.log("single");
-          // }
+          var sales = res[id].price * parseFloat(response.number);
+          var profit = res[id].product_sales + sales;
           console.log(
             `Success! You have purchased ${response.number} ${
               res[id].product_name
-            } for ` + colors.red("$" + res[id].price * response.number)
+            }(s) for ` + colors.red("$" + sales.toFixed(2))
           );
           var newAmount = res[id].stock_quantity - response.number;
-
-          console.log(newAmount, id);
-
           connection.query(
             "UPDATE products SET ? WHERE ?",
             [
               {
-                stock_quantity: newAmount
+                stock_quantity: newAmount,
+                product_sales: profit
               },
               {
                 item_id: id + 1

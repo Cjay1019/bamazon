@@ -15,7 +15,7 @@ var connection = mysql.createConnection({
 
 connection.connect(function(err) {
   if (err) throw err;
-  console.log("Welcome Bamazon team member!!\n");
+  console.log("Welcome Bamazon team member!\n");
   mainMenu();
 });
 
@@ -152,7 +152,7 @@ function howManyAdd() {
           ],
           function(error) {
             if (error) throw err;
-            console.log("This item's stock has been successfully updated!");
+            console.log("This item's stock has been successfully updated!\n");
             mainMenu();
           }
         );
@@ -161,7 +161,7 @@ function howManyAdd() {
 }
 
 function newInventory() {
-  connection.query("SELECT DISTINCT department_name FROM products", function(
+  connection.query("SELECT department_name FROM departments", function(
     err,
     res
   ) {
@@ -194,16 +194,24 @@ function newInventory() {
         }
       ])
       .then(function(response) {
+        var overhead =
+          (parseFloat(response.price) / 3) * parseFloat(response.stock);
         connection.query(
-          `INSERT INTO products (product_name, department_name, price, stock_quantity) VALUES ('${
+          `INSERT INTO products (product_name, department_name, price, stock_quantity, product_sales) VALUES ('${
             response.name
           }', '${response.department}', ${parseFloat(
             response.price
-          )}, ${parseInt(response.stock)})`,
+          )}, ${parseInt(response.stock)}, 0)`,
           function(error) {
             if (error) throw err;
+            console.log("New product has been successfully created!\n");
             mainMenu();
           }
+        );
+        connection.query(
+          `UPDATE departments SET over_head_costs = over_head_costs + ${overhead.toFixed(
+            2
+          )} WHERE department_name = '${response.department}'`
         );
       });
   });
